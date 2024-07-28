@@ -139,15 +139,17 @@ def on_mouse_leave(event):
 # Set up the Tkinter window
 root = tk.Tk()
 root.title("Audio Visualizer")
+root.geometry("800x600")  # Set initial window size
+root.minsize(800, 600)  # Set minimum window size
 
 # Load the background image
 bg_image = Image.open("wallpaper.jpg")  # Adjust the file name as needed
-bg_image = bg_image.resize((800, 600))  # Resize to fit the window size
+bg_image = bg_image.resize((800, 600))  # Resize to fit the initial window size
 bg_photo = ImageTk.PhotoImage(bg_image)
 
 # Create a canvas for the background
 bg_canvas = tk.Canvas(root, width=800, height=600)
-bg_canvas.pack()
+bg_canvas.pack(fill=tk.BOTH, expand=True)
 
 # Set the background image
 bg_canvas.create_image(0, 0, image=bg_photo, anchor='nw')
@@ -176,7 +178,7 @@ ax.imshow(bg_image, extent=[0, INITIAL_RATE / 2, -200, 200], aspect='auto', zord
 
 # Show the plot in the Tkinter window
 canvas = FigureCanvasTkAgg(fig, master=bg_canvas)
-canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
 # Add Start, Stop, Save, and Zoom buttons
 controls_frame = tk.Frame(root, bg='black')
@@ -197,6 +199,18 @@ zoom_button.pack(side=tk.LEFT)
 # Connect mouse events for zoom functionality
 fig.canvas.mpl_connect('button_press_event', lambda event: event)
 fig.canvas.mpl_connect('axes_leave_event', on_mouse_leave)  # Use axes_leave_event
+
+# Dynamically update the plot and background on resizing
+def resize(event):
+    # Resize the canvas and background image
+    bg_canvas.config(width=event.width, height=event.height)
+    bg_image_resized = bg_image.resize((event.width, event.height), Image.ANTIALIAS)
+    bg_photo_resized = ImageTk.PhotoImage(bg_image_resized)
+    bg_canvas.create_image(0, 0, image=bg_photo_resized, anchor='nw')
+    bg_canvas.image = bg_photo_resized  # Keep a reference to avoid garbage collection
+
+# Bind the resize event
+root.bind("<Configure>", resize)
 
 # Start the Tkinter main loop
 root.mainloop()
