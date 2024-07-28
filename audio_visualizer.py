@@ -136,18 +136,32 @@ def on_mouse_leave(event):
     if zoom_active:
         toggle_zoom()
 
+def resize(event):
+    """Resize the canvas and background image based on the window size."""
+    # Resize background image
+    bg_image_resized = bg_image.resize((event.width, event.height), Image.LANCZOS)
+    bg_photo_resized = ImageTk.PhotoImage(bg_image_resized)
+    
+    # Update the canvas background
+    bg_canvas.create_image(0, 0, image=bg_photo_resized, anchor='nw')
+    bg_canvas.image = bg_photo_resized  # Keep a reference to avoid garbage collection
+    
+    # Update the figure size
+    fig.set_size_inches(event.width / 100, event.height / 100)
+    fig.canvas.draw()
+
 # Set up the Tkinter window
 root = tk.Tk()
 root.title("Audio Visualizer")
 
 # Load the background image
 bg_image = Image.open("wallpaper.jpg")  # Adjust the file name as needed
-bg_image = bg_image.resize((800, 600))  # Resize to fit the window size
+bg_image = bg_image.resize((800, 600))  # Resize to fit the initial window size
 bg_photo = ImageTk.PhotoImage(bg_image)
 
 # Create a canvas for the background
 bg_canvas = tk.Canvas(root, width=800, height=600)
-bg_canvas.pack()
+bg_canvas.pack(fill=tk.BOTH, expand=True)
 
 # Set the background image
 bg_canvas.create_image(0, 0, image=bg_photo, anchor='nw')
@@ -171,12 +185,12 @@ ax.set_ylabel('Magnitude (dB)', color='white', fontsize=12)
 # Remove the grid
 ax.grid(False)
 
-# Load the wallpaper as background of the axes
-ax.imshow(bg_image, extent=[0, INITIAL_RATE / 2, -200, 200], aspect='auto', zorder=-1)
-
 # Show the plot in the Tkinter window
 canvas = FigureCanvasTkAgg(fig, master=bg_canvas)
-canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+
+# Load the wallpaper as background of the axes
+ax.imshow(bg_image, extent=[0, INITIAL_RATE / 2, -200, 200], aspect='auto', zorder=-1)
 
 # Add Start, Stop, Save, and Zoom buttons
 controls_frame = tk.Frame(root, bg='black')
@@ -197,6 +211,9 @@ zoom_button.pack(side=tk.LEFT)
 # Connect mouse events for zoom functionality
 fig.canvas.mpl_connect('button_press_event', lambda event: event)
 fig.canvas.mpl_connect('axes_leave_event', on_mouse_leave)  # Use axes_leave_event
+
+# Bind the resize event to the Tkinter window
+root.bind("<Configure>", resize)
 
 # Start the Tkinter main loop
 root.mainloop()
