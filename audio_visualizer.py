@@ -6,15 +6,15 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from tkinter import filedialog
 
 # Constants
-INITIAL_RATE = 48000  # Sample rate
+INITIAL_RATE = 44100  # Sample rate
 INITIAL_CHUNK = 1024   # Number of frames per buffer
+ZOOM_FACTOR = 2.0      # Zoom factor for magnifying glass
 
 # Global variables
 is_streaming = False
 stream = None
-zoom_rect = None
-zoom_start = None
-zoom_end = None
+zoom_active = False
+circle = None
 
 # Initialize PyAudio
 p = pyaudio.PyAudio()
@@ -89,8 +89,12 @@ def animate_plot():
             ax.bar(x, fft_magnitude_db, width=width, align='edge', edgecolor='black', color=colors)  # Plot bars with random colors
 
             # If zoom is active, update the limits
-            if zoom_start is not None and zoom_end is not None:
-                ax.set_xlim(zoom_start, zoom_end)
+            if zoom_active and circle:
+                mouse_x, mouse_y = circle.center
+                zoomed_x = np.clip([mouse_x - (INITIAL_RATE / 2) / ZOOM_FACTOR, mouse_x + (INITIAL_RATE / 2) / ZOOM_FACTOR], 0, INITIAL_RATE / 2)
+                zoomed_y = [-200, 200]
+                ax.set_xlim(zoomed_x)
+                ax.set_ylim(zoomed_y)
 
             fig.canvas.draw()
 
@@ -109,31 +113,33 @@ def save_plot():
         fig.savefig(filename)
         print(f"Plot saved as: {filename}")
 
-def reset_zoom():
-    """Reset the zoom to the original view."""
-    global zoom_start, zoom_end
-    zoom_start = None
-    zoom_end = None
-    ax.set_xlim(0, INITIAL_RATE / 2)
-    ax.set_ylim(-200, 200)
-    fig.canvas.draw()
+def toggle_zoom():
+    """Toggle the zoom functionality with a magnifying glass."""
+    global zoom_active, circle
+    zoom_active = not zoom_active
 
-def on_mouse_press(event):
-    """Record the starting point of the zoom rectangle."""
-    global zoom_start, zoom_end
-    if event.inaxes == ax:
-        zoom_start = event.xdata
+    if zoom_active:
+        circle = plt.Circle((0, 0), 50, color='yellow', alpha=0.5, fill=True)  # Create a circle
+        ax.add_patch(circle)
+        fig.canvas.mpl_connect('motion_notify_event', update_circle)
+        print("Zoom activated. Move the mouse over the graph to see the magnifying effect.")
+    else:
+        if circle:
+            circle.remove()
+            circle = None
+        print("Zoom deactivated.")
 
-def on_mouse_release(event):
-    """Record the end point of the zoom rectangle and update the plot."""
-    global zoom_start, zoom_end
-    if event.inaxes == ax:
-        zoom_end = event.xdata
-        if zoom_start and zoom_end:
-            ax.set_xlim(sorted([zoom_start, zoom_end]))
-            fig.canvas.draw()
-            zoom_start = None
-            zoom_end = None
+def update_circle(event):
+    """Update the position of the magnifying glass circle."""
+    if zoom_active and event.inaxes == ax:
+        circle.center = (event.xdata, event.ydata)  # Update the circle center to mouse position
+        fig.canvas.draw_idle()
+
+def on_mouse_leave(event):
+    """Deactivate zoom if the mouse leaves the axes."""
+    global zoom_active
+    if zoom_active:
+        toggle_zoom()
 
 # Set up the Tkinter window
 root = tk.Tk()
@@ -152,7 +158,7 @@ ax.grid()
 canvas = FigureCanvasTkAgg(fig, master=root)
 canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
 
-# Add Start, Stop, Save, and Reset Zoom buttons
+# Add Start, Stop, Save, and Zoom buttons
 start_button = tk.Button(root, text="Start", command=start_stream)
 start_button.pack(side=tk.LEFT)
 
@@ -162,12 +168,13 @@ stop_button.pack(side=tk.LEFT)
 save_button = tk.Button(root, text="Save Plot", command=save_plot)
 save_button.pack(side=tk.LEFT)
 
-reset_zoom_button = tk.Button(root, text="Reset Zoom", command=reset_zoom)
-reset_zoom_button.pack(side=tk.LEFT)
+zoom_button = tk.Button(root, text="Toggle Zoom", command=toggle_zoom)
+zoom_button.pack(side=tk.LEFT)
 
 # Connect mouse events for zoom functionality
-fig.canvas.mpl_connect('button_press_event', on_mouse_press)
-fig.canvas.mpl_connect('button_release_event', on_mouse_release)
+fig.canvas.mpl_connect('button_press_event', lambda event: event)
+fig.canvas.mpl_connect('motion_notify_event', update_circle)
+fig.canvas.mpl_connect('axes_leave_event', on_mouse_leave)
 
 # List input devices
 list_input_devices()
