@@ -5,11 +5,12 @@ import tkinter as tk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from tkinter import filedialog
 import matplotlib.cm as cm
+from PIL import Image, ImageTk
 
 # Constants
 INITIAL_RATE = 44100  # Sample rate
 INITIAL_CHUNK = 1024   # Number of frames per buffer
-ZOOM_FACTOR = 3.0      # Zoom factor for magnifying glass
+ZOOM_FACTOR = 2.0      # Zoom factor for magnifying glass
 CIRCLE_RADIUS = 50     # Radius of the magnifying glass circle
 
 # Global variables
@@ -18,7 +19,7 @@ stream = None
 zoom_active = False
 circle = None
 color_index = 0  # To cycle through colors
-color_increment = 8  # Increase this value for faster transitions
+color_increment = 5  # Increase this value for faster transitions
 
 # Initialize PyAudio
 p = pyaudio.PyAudio()
@@ -83,7 +84,12 @@ def animate_plot():
             ax.set_title('Real-Time Audio Frequency Spectrum', color='white')
             ax.set_xlabel('Frequency (Hz)', color='white')
             ax.set_ylabel('Magnitude (dB)', color='white')
-            ax.grid(color='gray')  # Use gray grid lines
+            ax.spines['bottom'].set_color('white')  # Set axis color to white
+            ax.spines['left'].set_color('white')
+            ax.spines['right'].set_color('white')
+            ax.spines['top'].set_color('white')
+            ax.tick_params(axis='x', colors='white')  # Set tick color to white
+            ax.tick_params(axis='y', colors='white')
 
             # Generate color based on the current color index
             color = cm.hsv(color_index / 360.0)  # HSV color based on angle
@@ -150,8 +156,17 @@ def on_mouse_leave(event):
 root = tk.Tk()
 root.title("Audio Visualizer")
 
-# Configure dark theme
-root.configure(bg='black')
+# Load the background image
+bg_image = Image.open("wallpaper.jpg")  # Adjust the file name as needed
+bg_image = bg_image.resize((800, 600), Image.LANCZOS)  # Resize to fit the window size
+bg_photo = ImageTk.PhotoImage(bg_image)
+
+# Create a canvas for the background
+bg_canvas = tk.Canvas(root, width=800, height=600)
+bg_canvas.pack()
+
+# Set the background image
+bg_canvas.create_image(0, 0, image=bg_photo, anchor='nw')
 
 # Prepare the plot
 fig, ax = plt.subplots(figsize=(10, 5))
@@ -167,28 +182,32 @@ ax.set_ylim(-200, 200)  # Set y-limit for dB range from -200 to +200
 ax.set_title('Real-Time Audio Frequency Spectrum', color='white')
 ax.set_xlabel('Frequency (Hz)', color='white')
 ax.set_ylabel('Magnitude (dB)', color='white')
-ax.grid(color='gray')  # Use gray grid lines
+
+# Remove the grid
+ax.grid(False)
 
 # Show the plot in the Tkinter window
-canvas = FigureCanvasTkAgg(fig, master=root)
+canvas = FigureCanvasTkAgg(fig, master=bg_canvas)
 canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
 
 # Add Start, Stop, Save, and Zoom buttons
-start_button = tk.Button(root, text="Start", command=start_stream, bg='gray', fg='white')
+controls_frame = tk.Frame(root, bg='black')
+controls_frame.pack(side=tk.BOTTOM, fill=tk.X)
+
+start_button = tk.Button(controls_frame, text="Start", command=start_stream, bg='gray', fg='white')
 start_button.pack(side=tk.LEFT)
 
-stop_button = tk.Button(root, text="Stop", command=stop_stream, bg='gray', fg='white')
+stop_button = tk.Button(controls_frame, text="Stop", command=stop_stream, bg='gray', fg='white')
 stop_button.pack(side=tk.LEFT)
 
-save_button = tk.Button(root, text="Save Plot", command=save_plot, bg='gray', fg='white')
+save_button = tk.Button(controls_frame, text="Save Plot", command=save_plot, bg='gray', fg='white')
 save_button.pack(side=tk.LEFT)
 
-zoom_button = tk.Button(root, text="Toggle Zoom", command=toggle_zoom, bg='gray', fg='white')
+zoom_button = tk.Button(controls_frame, text="Toggle Zoom", command=toggle_zoom, bg='gray', fg='white')
 zoom_button.pack(side=tk.LEFT)
 
-# Connect mouse events for zoom functionality
+# Connect the mouse events for zoom functionality
 fig.canvas.mpl_connect('button_press_event', lambda event: event)
-fig.canvas.mpl_connect('motion_notify_event', update_circle)
 fig.canvas.mpl_connect('axes_leave_event', on_mouse_leave)
 
 # List input devices
