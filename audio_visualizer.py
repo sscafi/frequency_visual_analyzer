@@ -81,14 +81,9 @@ def animate_plot():
             ax.set_ylabel('Magnitude (dB)')
             ax.grid()
 
-            # Create random colors for the bars
-            num_bars = len(fft_magnitude_db)
-            colors = np.random.rand(num_bars, 3)  # Generate random RGB colors
-
-            # Create bars for frequency bands
-            width = np.diff(x, prepend=0)  # Bar width for each frequency
-            ax.bar(x, fft_magnitude_db, width=width, align='edge', edgecolor='black', color=colors)  # Plot bars with random colors
-
+            # Plot the FFT magnitude as a logarithmic line graph
+            ax.plot(x, fft_magnitude_db, color='blue', linewidth=2)  # Change to line plot
+            
             # If zoom is active, update the zoom effect
             if zoom_active and circle:
                 mouse_x, mouse_y = circle.center
