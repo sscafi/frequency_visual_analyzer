@@ -6,6 +6,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from tkinter import filedialog
 import matplotlib.cm as cm
 from PIL import Image, ImageTk
+import noisereduce as nr  # Import noise reduction library
 
 # Constants
 INITIAL_RATE = 44100  # Sample rate
@@ -54,6 +55,9 @@ def animate_plot():
             # Read audio data
             data = stream.read(INITIAL_CHUNK)
             audio_data = np.frombuffer(data, dtype=np.int16)
+
+            # Apply noise reduction
+            audio_data = nr.reduce_noise(y=audio_data, sr=INITIAL_RATE)
 
             # Perform FFT
             fft_data = np.fft.fft(audio_data)
