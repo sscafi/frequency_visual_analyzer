@@ -9,7 +9,7 @@ import matplotlib.cm as cm
 # Constants
 INITIAL_RATE = 44100  # Sample rate
 INITIAL_CHUNK = 1024   # Number of frames per buffer
-ZOOM_FACTOR = 2.0      # Zoom factor for magnifying glass
+ZOOM_FACTOR = 3.0      # Zoom factor for magnifying glass
 CIRCLE_RADIUS = 50     # Radius of the magnifying glass circle
 
 # Global variables
@@ -17,7 +17,8 @@ is_streaming = False
 stream = None
 zoom_active = False
 circle = None
-color_cycle = cm.viridis(np.linspace(0, 1, INITIAL_CHUNK // 2))  # Dynamic color gradient
+color_index = 0  # To cycle through colors
+color_increment = 8  # Increase this value for faster transitions
 
 # Initialize PyAudio
 p = pyaudio.PyAudio()
@@ -57,6 +58,7 @@ def stop_stream():
 
 def animate_plot():
     """Update the plot in real-time."""
+    global color_index
     if is_streaming:
         try:
             # Read audio data
@@ -78,14 +80,17 @@ def animate_plot():
             ax.clear()
             ax.set_xlim(0, INITIAL_RATE / 2)  # Set x-limit from 0 to max frequency
             ax.set_ylim(-200, 200)  # Set y-limit for dB range from -200 to +200
-            ax.set_title('Real-Time Audio Frequency Spectrum')
-            ax.set_xlabel('Frequency (Hz)')
-            ax.set_ylabel('Magnitude (dB)')
-            ax.grid()
+            ax.set_title('Real-Time Audio Frequency Spectrum', color='white')
+            ax.set_xlabel('Frequency (Hz)', color='white')
+            ax.set_ylabel('Magnitude (dB)', color='white')
+            ax.grid(color='gray')  # Use gray grid lines
+
+            # Generate color based on the current color index
+            color = cm.hsv(color_index / 360.0)  # HSV color based on angle
+            color_index = (color_index + color_increment) % 360  # Cycle through hues
 
             # Plot the FFT magnitude as a logarithmic line graph with dynamic colors
-            colors = color_cycle[np.linspace(0, len(color_cycle)-1, len(fft_magnitude_db), dtype=int)]
-            ax.plot(x, fft_magnitude_db, color=colors[int(np.random.rand() * len(colors))], linewidth=2)  # Random color from color_cycle
+            ax.plot(x, fft_magnitude_db, color=color[:3], linewidth=2)  # Use RGB values
             
             # If zoom is active, update the zoom effect
             if zoom_active and circle:
@@ -145,30 +150,40 @@ def on_mouse_leave(event):
 root = tk.Tk()
 root.title("Audio Visualizer")
 
+# Configure dark theme
+root.configure(bg='black')
+
 # Prepare the plot
 fig, ax = plt.subplots(figsize=(10, 5))
+ax.set_facecolor('black')  # Set the plot background to black
+ax.spines['bottom'].set_color('white')  # Set axis color to white
+ax.spines['left'].set_color('white')
+ax.spines['right'].set_color('white')
+ax.spines['top'].set_color('white')
+ax.tick_params(axis='x', colors='white')  # Set tick color to white
+ax.tick_params(axis='y', colors='white')
 ax.set_xlim(0, INITIAL_RATE / 2)  # Set x-limit from 0 to max frequency
 ax.set_ylim(-200, 200)  # Set y-limit for dB range from -200 to +200
-ax.set_title('Real-Time Audio Frequency Spectrum')
-ax.set_xlabel('Frequency (Hz)')
-ax.set_ylabel('Magnitude (dB)')
-ax.grid()
+ax.set_title('Real-Time Audio Frequency Spectrum', color='white')
+ax.set_xlabel('Frequency (Hz)', color='white')
+ax.set_ylabel('Magnitude (dB)', color='white')
+ax.grid(color='gray')  # Use gray grid lines
 
 # Show the plot in the Tkinter window
 canvas = FigureCanvasTkAgg(fig, master=root)
 canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
 
 # Add Start, Stop, Save, and Zoom buttons
-start_button = tk.Button(root, text="Start", command=start_stream)
+start_button = tk.Button(root, text="Start", command=start_stream, bg='gray', fg='white')
 start_button.pack(side=tk.LEFT)
 
-stop_button = tk.Button(root, text="Stop", command=stop_stream)
+stop_button = tk.Button(root, text="Stop", command=stop_stream, bg='gray', fg='white')
 stop_button.pack(side=tk.LEFT)
 
-save_button = tk.Button(root, text="Save Plot", command=save_plot)
+save_button = tk.Button(root, text="Save Plot", command=save_plot, bg='gray', fg='white')
 save_button.pack(side=tk.LEFT)
 
-zoom_button = tk.Button(root, text="Toggle Zoom", command=toggle_zoom)
+zoom_button = tk.Button(root, text="Toggle Zoom", command=toggle_zoom, bg='gray', fg='white')
 zoom_button.pack(side=tk.LEFT)
 
 # Connect mouse events for zoom functionality
