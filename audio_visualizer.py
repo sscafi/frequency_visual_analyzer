@@ -81,16 +81,7 @@ def animate_plot():
             ax.clear()
             ax.set_xlim(0, INITIAL_RATE / 2)  # Set x-limit from 0 to max frequency
             ax.set_ylim(-200, 200)  # Set y-limit for dB range from -200 to +200
-            ax.set_title('Real-Time Audio Frequency Spectrum', color='white')
-            ax.set_xlabel('Frequency (Hz)', color='white')
-            ax.set_ylabel('Magnitude (dB)', color='white')
-            ax.spines['bottom'].set_color('white')  # Set axis color to white
-            ax.spines['left'].set_color('white')
-            ax.spines['right'].set_color('white')
-            ax.spines['top'].set_color('white')
-            ax.tick_params(axis='x', colors='white')  # Set tick color to white
-            ax.tick_params(axis='y', colors='white')
-
+            
             # Generate color based on the current color index
             color = cm.hsv(color_index / 360.0)  # HSV color based on angle
             color_index = (color_index + color_increment) % 360  # Cycle through hues
@@ -107,6 +98,7 @@ def animate_plot():
                 ax.set_xlim(zoomed_x)
                 ax.set_ylim(zoomed_y)
 
+            # Draw the updated figure
             fig.canvas.draw()
 
             # Call animate_plot again
@@ -169,22 +161,27 @@ bg_canvas.pack()
 bg_canvas.create_image(0, 0, image=bg_photo, anchor='nw')
 
 # Prepare the plot
-fig, ax = plt.subplots(figsize=(10, 5))
-ax.set_facecolor('black')  # Set the plot background to black
-ax.spines['bottom'].set_color('white')  # Set axis color to white
-ax.spines['left'].set_color('white')
-ax.spines['right'].set_color('white')
-ax.spines['top'].set_color('white')
-ax.tick_params(axis='x', colors='white')  # Set tick color to white
-ax.tick_params(axis='y', colors='white')
+fig, ax = plt.subplots(figsize=(10, 5), facecolor='none')  # Make the figure background transparent
+fig.patch.set_alpha(0.0)  # Make the figure background transparent
+ax.set_facecolor((0, 0, 0, 0))  # Set the plot background to transparent
+ax.spines['bottom'].set_color('none')  # Remove axis spines
+ax.spines['left'].set_color('none')
+ax.spines['right'].set_color('none')
+ax.spines['top'].set_color('none')
+ax.tick_params(axis='x', colors='white', labelsize=10)  # Set tick color to white
+ax.tick_params(axis='y', colors='white', labelsize=10)
 ax.set_xlim(0, INITIAL_RATE / 2)  # Set x-limit from 0 to max frequency
 ax.set_ylim(-200, 200)  # Set y-limit for dB range from -200 to +200
-ax.set_title('Real-Time Audio Frequency Spectrum', color='white')
-ax.set_xlabel('Frequency (Hz)', color='white')
-ax.set_ylabel('Magnitude (dB)', color='white')
+ax.set_title('Real-Time Audio Frequency Spectrum', color='white', fontsize=14)
+ax.set_xlabel('Frequency (Hz)', color='white', fontsize=12)
+ax.set_ylabel('Magnitude (dB)', color='white', fontsize=12)
 
 # Remove the grid
 ax.grid(False)
+
+# Load the wallpaper as background of the axes
+wallpaper_img = Image.open("wallpaper.jpg").resize((800, 600))
+ax.imshow(wallpaper_img, extent=[0, INITIAL_RATE / 2, -200, 200], aspect='auto', zorder=-1)
 
 # Show the plot in the Tkinter window
 canvas = FigureCanvasTkAgg(fig, master=bg_canvas)
@@ -206,18 +203,13 @@ save_button.pack(side=tk.LEFT)
 zoom_button = tk.Button(controls_frame, text="Toggle Zoom", command=toggle_zoom, bg='gray', fg='white')
 zoom_button.pack(side=tk.LEFT)
 
-# Connect the mouse events for zoom functionality
+# Connect mouse events for zoom functionality
 fig.canvas.mpl_connect('button_press_event', lambda event: event)
-fig.canvas.mpl_connect('axes_leave_event', on_mouse_leave)
-
-# List input devices
-list_input_devices()
+fig.canvas.mpl_connect('axes_leave_event', on_mouse_leave)  # Use axes_leave_event
 
 # Start the Tkinter main loop
 root.mainloop()
 
-# Clean up
-if stream is not None:
-    stream.stop_stream()
-    stream.close()
+# Clean up PyAudio
+stop_stream()
 p.terminate()
