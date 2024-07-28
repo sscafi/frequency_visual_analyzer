@@ -9,6 +9,7 @@ from tkinter import filedialog
 INITIAL_RATE = 44100  # Sample rate
 INITIAL_CHUNK = 1024   # Number of frames per buffer
 ZOOM_FACTOR = 2.0      # Zoom factor for magnifying glass
+CIRCLE_RADIUS = 50     # Radius of the magnifying glass circle
 
 # Global variables
 is_streaming = False
@@ -88,10 +89,11 @@ def animate_plot():
             width = np.diff(x, prepend=0)  # Bar width for each frequency
             ax.bar(x, fft_magnitude_db, width=width, align='edge', edgecolor='black', color=colors)  # Plot bars with random colors
 
-            # If zoom is active, update the limits
+            # If zoom is active, update the zoom effect
             if zoom_active and circle:
                 mouse_x, mouse_y = circle.center
-                zoomed_x = np.clip([mouse_x - (INITIAL_RATE / 2) / ZOOM_FACTOR, mouse_x + (INITIAL_RATE / 2) / ZOOM_FACTOR], 0, INITIAL_RATE / 2)
+                zoomed_x = np.clip([mouse_x - (INITIAL_RATE / (2 * ZOOM_FACTOR)), 
+                                     mouse_x + (INITIAL_RATE / (2 * ZOOM_FACTOR))], 0, INITIAL_RATE / 2)
                 zoomed_y = [-200, 200]
                 ax.set_xlim(zoomed_x)
                 ax.set_ylim(zoomed_y)
@@ -119,7 +121,7 @@ def toggle_zoom():
     zoom_active = not zoom_active
 
     if zoom_active:
-        circle = plt.Circle((0, 0), 50, color='yellow', alpha=0.5, fill=True)  # Create a circle
+        circle = plt.Circle((0, 0), CIRCLE_RADIUS, color='yellow', alpha=0.5, fill=True)  # Create a circle
         ax.add_patch(circle)
         fig.canvas.mpl_connect('motion_notify_event', update_circle)
         print("Zoom activated. Move the mouse over the graph to see the magnifying effect.")
