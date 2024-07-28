@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import tkinter as tk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from tkinter import filedialog
+import matplotlib.cm as cm
 
 # Constants
 INITIAL_RATE = 44100  # Sample rate
@@ -16,6 +17,7 @@ is_streaming = False
 stream = None
 zoom_active = False
 circle = None
+color_cycle = cm.viridis(np.linspace(0, 1, INITIAL_CHUNK // 2))  # Dynamic color gradient
 
 # Initialize PyAudio
 p = pyaudio.PyAudio()
@@ -81,8 +83,9 @@ def animate_plot():
             ax.set_ylabel('Magnitude (dB)')
             ax.grid()
 
-            # Plot the FFT magnitude as a logarithmic line graph
-            ax.plot(x, fft_magnitude_db, color='blue', linewidth=2)  # Change to line plot
+            # Plot the FFT magnitude as a logarithmic line graph with dynamic colors
+            colors = color_cycle[np.linspace(0, len(color_cycle)-1, len(fft_magnitude_db), dtype=int)]
+            ax.plot(x, fft_magnitude_db, color=colors[int(np.random.rand() * len(colors))], linewidth=2)  # Random color from color_cycle
             
             # If zoom is active, update the zoom effect
             if zoom_active and circle:
