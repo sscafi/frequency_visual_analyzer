@@ -24,17 +24,6 @@ color_increment = 5  # Increase this value for faster transitions
 # Initialize PyAudio
 p = pyaudio.PyAudio()
 
-def list_input_devices():
-    """List all available audio input devices."""
-    info = p.get_host_api_info_by_index(0)
-    numdevices = info.get('deviceCount')
-
-    print("Available input devices:")
-    for i in range(0, numdevices):
-        device = p.get_device_info_by_index(i)
-        if device['maxInputChannels'] > 0:  # Check if it's an input device
-            print(f"Device {i}: {device['name']}")
-
 def start_stream():
     """Start the audio stream."""
     global is_streaming, stream
@@ -77,18 +66,21 @@ def animate_plot():
             fft_magnitude_db = 20 * np.log10(fft_magnitude + 1e-6)
             fft_magnitude_db = np.clip(fft_magnitude_db, -200, 200)  # Clip the dB values
             
-            # Clear previous plot
-            ax.clear()
-            ax.set_xlim(0, INITIAL_RATE / 2)  # Set x-limit from 0 to max frequency
-            ax.set_ylim(-200, 200)  # Set y-limit for dB range from -200 to +200
-            
+            # Set limits
+            ax.set_xlim(0, INITIAL_RATE / 2)
+            ax.set_ylim(-200, 200)
+
             # Generate color based on the current color index
             color = cm.hsv(color_index / 360.0)  # HSV color based on angle
             color_index = (color_index + color_increment) % 360  # Cycle through hues
 
-            # Plot the FFT magnitude as a logarithmic line graph with dynamic colors
-            ax.plot(x, fft_magnitude_db, color=color[:3], linewidth=2)  # Use RGB values
-            
+            # Update the line plot (create it if it doesn't exist)
+            if not hasattr(animate_plot, "line"):
+                animate_plot.line, = ax.plot(x, fft_magnitude_db, color=color[:3], linewidth=2)
+            else:
+                animate_plot.line.set_ydata(fft_magnitude_db)
+                animate_plot.line.set_color(color[:3])  # Update color
+
             # If zoom is active, update the zoom effect
             if zoom_active and circle:
                 mouse_x, mouse_y = circle.center
@@ -113,7 +105,7 @@ def save_plot():
                                                          ("JPEG files", "*.jpg"),
                                                          ("All files", "*.*")])
     if filename:
-        fig.savefig(filename)
+        fig.savefig(filename, bbox_inches='tight', transparent=True)  # Save with transparency
         print(f"Plot saved as: {filename}")
 
 def toggle_zoom():
@@ -150,7 +142,7 @@ root.title("Audio Visualizer")
 
 # Load the background image
 bg_image = Image.open("wallpaper.jpg")  # Adjust the file name as needed
-bg_image = bg_image.resize((800, 600), Image.LANCZOS)  # Resize to fit the window size
+bg_image = bg_image.resize((800, 600))  # Resize to fit the window size
 bg_photo = ImageTk.PhotoImage(bg_image)
 
 # Create a canvas for the background
@@ -180,8 +172,7 @@ ax.set_ylabel('Magnitude (dB)', color='white', fontsize=12)
 ax.grid(False)
 
 # Load the wallpaper as background of the axes
-wallpaper_img = Image.open("wallpaper.jpg").resize((800, 600))
-ax.imshow(wallpaper_img, extent=[0, INITIAL_RATE / 2, -200, 200], aspect='auto', zorder=-1)
+ax.imshow(bg_image, extent=[0, INITIAL_RATE / 2, -200, 200], aspect='auto', zorder=-1)
 
 # Show the plot in the Tkinter window
 canvas = FigureCanvasTkAgg(fig, master=bg_canvas)
